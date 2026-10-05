@@ -1,0 +1,71 @@
+{
+  "case": 1,
+  "label": "Freiburg Reference Case 1",
+  "shape": [
+    176,
+    256,
+    256
+  ],
+  "affine": [
+    [
+      0.9977972256989682,
+      -0.0601156,
+      0.0266941,
+      -83.67451750000001
+    ],
+    [
+      0.05106912828884754,
+      0.963841,
+      0.261537,
+      -138.50839
+    ],
+    [
+      -0.04144980382723808,
+      -0.259607,
+      0.964824,
+      -110.96603500000002
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "voxelSizeMm": [
+    0.9999627221622099,
+    0.9999995765465903,
+    0.9999997641598772
+  ],
+  "displayScale": {
+    "low": 0,
+    "high": 311,
+    "storage": "uint8"
+  },
+  "acquisition": {
+    "images": 176,
+    "scanner": "MAGNETOM Prisma Fit",
+    "tr": 5000,
+    "te": 280,
+    "ti": 1800,
+    "fieldStrengthT": 3,
+    "sequence": "native sagittal isotropic 3D FLAIR"
+  },
+  "arms": {
+    "left": {
+      "file": "https://freiburg-lesion-fidelity-viewer.lucasbecker310.chatgpt.site/data/case1/cubic.u8.gz",
+      "label": "Cubic interpolation",
+      "kind": "non-learned control"
+    },
+    "middle": {
+      "file": "https://freiburg-lesion-fidelity-viewer.lucasbecker310.chatgpt.site/data/case1/prettier.u8.gz",
+      "label": "PRETTIER–ShuffleMixer",
+      "kind": "AI super-resolution"
+    },
+    "right": {
+      "file": "https://freiburg-lesion-fidelity-viewer.lucasbecker310.chatgpt.site/data/case1/native.u8.gz",
+      "label": "Native 1-mm 3D FLAIR",
+      "kind": "clinical reference"
+    }
+  }
+}
