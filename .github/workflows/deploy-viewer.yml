@@ -1,0 +1,56 @@
+name: Deploy Freiburg Viewer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "viewer/**"
+      - ".github/workflows/deploy-viewer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Enable GitHub Pages
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo
+            try {
+              await github.request("GET /repos/{owner}/{repo}/pages", { owner, repo })
+            } catch (error) {
+              if (error.status !== 404) throw error
+              await github.request("POST /repos/{owner}/{repo}/pages", {
+                owner,
+                repo,
+                build_type: "workflow",
+              })
+            }
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload viewer
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: viewer
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
