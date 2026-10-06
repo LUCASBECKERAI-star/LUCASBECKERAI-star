@@ -53,17 +53,17 @@
   },
   "arms": {
     "left": {
-      "file": "https://freiburg-lesion-fidelity-viewer.lucasbecker310.chatgpt.site/data/case1/cubic.u8.gz",
+      "file": "https://freiburg-lesion-fidelity-viewer.lucasbecker310.chatgpt.site/data-cors/case1/cubic.u8.gz",
       "label": "Cubic interpolation",
       "kind": "non-learned control"
     },
     "middle": {
-      "file": "https://freiburg-lesion-fidelity-viewer.lucasbecker310.chatgpt.site/data/case1/prettier.u8.gz",
+      "file": "https://freiburg-lesion-fidelity-viewer.lucasbecker310.chatgpt.site/data-cors/case1/prettier.u8.gz",
       "label": "PRETTIER–ShuffleMixer",
       "kind": "AI super-resolution"
     },
     "right": {
-      "file": "https://freiburg-lesion-fidelity-viewer.lucasbecker310.chatgpt.site/data/case1/native.u8.gz",
+      "file": "https://freiburg-lesion-fidelity-viewer.lucasbecker310.chatgpt.site/data-cors/case1/native.u8.gz",
       "label": "Native 1-mm 3D FLAIR",
       "kind": "clinical reference"
     }
