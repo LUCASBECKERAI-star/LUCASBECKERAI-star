@@ -3,12 +3,11 @@
 from __future__ import annotations
 import argparse, json, shutil, sys
 from pathlib import Path
-import numpy as np
 import pandas as pd
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / 'fedsynth_meta' / 'scripts'))
-from pilot import MODEL_SHA256, ANALYSIS_VERSION, file_sha256, inspect_model, process_case
+from pilot_area import MODEL_SHA256, ANALYSIS_VERSION, file_sha256, inspect_model, process_case
 
 
 def main():
