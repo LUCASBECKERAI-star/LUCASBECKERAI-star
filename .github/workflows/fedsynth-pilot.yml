@@ -52,7 +52,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: fedsynth-extraction-diagnostics-area
+          name: fedsynth-extraction-diagnostics-official-mask
           path: outputs/bootstrap
           retention-days: 30
           if-no-files-found: error
@@ -86,7 +86,7 @@ jobs:
             -o models/fedsynthct_lietal_t1w_brain.onnx
           echo '52837d959b844bf83664d7e1e575d1a5f8cfbbec29bf1d52f3e59cc688d99fda  models/fedsynthct_lietal_t1w_brain.onnx' | sha256sum -c -
 
-      - name: Run area-resize versioned three-case technical pilot
+      - name: Run official-mask versioned three-case technical pilot
         id: runpilot
         if: steps.extract.outcome == 'success'
         continue-on-error: true
@@ -94,7 +94,7 @@ jobs:
           rm -rf outputs/pilot
           mkdir -p outputs/pilot outputs/bootstrap
           set +e
-          python fedsynth_meta/scripts/pilot_area.py \
+          python fedsynth_meta/scripts/pilot_official.py \
             --data data/pilot \
             --model models/fedsynthct_lietal_t1w_brain.onnx \
             --out outputs/pilot 2>&1 | tee outputs/bootstrap/pilot.log
@@ -106,7 +106,7 @@ jobs:
         if: always() && steps.extract.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: fedsynth-pilot-runtime-diagnostics-area
+          name: fedsynth-pilot-runtime-diagnostics-official-mask
           path: |
             outputs/bootstrap
             outputs/pilot/summaries
@@ -127,11 +127,11 @@ jobs:
           find outputs/pilot -type f -printf '%P\t%s bytes\n' | sort > outputs/pilot/FILE_INVENTORY.txt
           cp data/pilot/extraction_manifest.json outputs/pilot/
 
-      - name: Upload complete area-resize technical-pilot artifact
+      - name: Upload complete official-mask technical-pilot artifact
         if: steps.runpilot.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: fedsynth-li-three-case-technical-pilot-area
+          name: fedsynth-li-three-case-technical-pilot-official-mask
           path: outputs/pilot
           compression-level: 6
           retention-days: 30
