@@ -16,6 +16,7 @@ permissions:
 
 env:
   PYTHONUNBUFFERED: '1'
+  ANALYSIS_PROTOCOL_VERSION: 'v1.2.0-official-mask'
 
 jobs:
   analyze:
@@ -101,7 +102,7 @@ jobs:
             -o models/fedsynthct_lietal_t1w_brain.onnx
           echo '52837d959b844bf83664d7e1e575d1a5f8cfbbec29bf1d52f3e59cc688d99fda  models/fedsynthct_lietal_t1w_brain.onnx' | sha256sum -c -
 
-      - name: Analyze six cases
+      - name: Analyze six cases with official mask semantics
         run: |
           extra=''
           if [ '${{ matrix.start }}' = '0' ]; then extra='--keep-first-figure'; fi
