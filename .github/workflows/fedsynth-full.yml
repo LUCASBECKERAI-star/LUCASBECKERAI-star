@@ -1,0 +1,164 @@
+name: FedSynthCT Li ONNX full 180-case reanalysis
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: fedsynth-full-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  analyze:
+    name: Center ${{ matrix.center }} cases ${{ matrix.start }}-${{ matrix.end }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        include:
+          - { center: A, start: 0,  end: 5 }
+          - { center: A, start: 6,  end: 11 }
+          - { center: A, start: 12, end: 17 }
+          - { center: A, start: 18, end: 23 }
+          - { center: A, start: 24, end: 29 }
+          - { center: A, start: 30, end: 35 }
+          - { center: A, start: 36, end: 41 }
+          - { center: A, start: 42, end: 47 }
+          - { center: A, start: 48, end: 53 }
+          - { center: A, start: 54, end: 59 }
+          - { center: B, start: 0,  end: 5 }
+          - { center: B, start: 6,  end: 11 }
+          - { center: B, start: 12, end: 17 }
+          - { center: B, start: 18, end: 23 }
+          - { center: B, start: 24, end: 29 }
+          - { center: B, start: 30, end: 35 }
+          - { center: B, start: 36, end: 41 }
+          - { center: B, start: 42, end: 47 }
+          - { center: B, start: 48, end: 53 }
+          - { center: B, start: 54, end: 59 }
+          - { center: C, start: 0,  end: 5 }
+          - { center: C, start: 6,  end: 11 }
+          - { center: C, start: 12, end: 17 }
+          - { center: C, start: 18, end: 23 }
+          - { center: C, start: 24, end: 29 }
+          - { center: C, start: 30, end: 35 }
+          - { center: C, start: 36, end: 41 }
+          - { center: C, start: 42, end: 47 }
+          - { center: C, start: 48, end: 53 }
+          - { center: C, start: 54, end: 59 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Python sources
+        run: python3 -m compileall -q fedsynth_meta/scripts fedsynth_full
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install ZIP64 range reader
+        run: npm install --no-save @gyng/remote-zip@1.0.1
+
+      - name: Range-extract six paired cases
+        run: |
+          node fedsynth_full/extract_chunk.mjs \
+            '${{ matrix.center }}' '${{ matrix.start }}' 6 \
+            'data/chunk'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned analysis runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            'numpy==2.1.3' \
+            'scipy==1.14.1' \
+            'pandas==2.2.3' \
+            'matplotlib==3.9.2' \
+            'scikit-image==0.24.0' \
+            'SimpleITK==2.4.0' \
+            'onnx==1.17.0' \
+            'onnxruntime==1.20.1'
+
+      - name: Download and verify official Li ONNX
+        run: |
+          mkdir -p models
+          curl --fail --location --retry 5 --retry-delay 5 \
+            'https://github.com/ciroraggio/SlicerModalityConverter/releases/download/models/fedsynthct_lietal_t1w_brain.onnx' \
+            -o models/fedsynthct_lietal_t1w_brain.onnx
+          echo '52837d959b844bf83664d7e1e575d1a5f8cfbbec29bf1d52f3e59cc688d99fda  models/fedsynthct_lietal_t1w_brain.onnx' | sha256sum -c -
+
+      - name: Analyze six cases
+        run: |
+          extra=''
+          if [ '${{ matrix.start }}' = '0' ]; then extra='--keep-first-figure'; fi
+          python fedsynth_full/full_worker.py \
+            --data data/chunk \
+            --model models/fedsynthct_lietal_t1w_brain.onnx \
+            --out 'outputs/chunk_${{ matrix.center }}_${{ matrix.start }}' \
+            $extra
+
+      - name: Add extraction manifest and checksums
+        run: |
+          cp data/chunk/extraction_manifest.json 'outputs/chunk_${{ matrix.center }}_${{ matrix.start }}/'
+          find 'outputs/chunk_${{ matrix.center }}_${{ matrix.start }}' -type f -print0 | sort -z | xargs -0 sha256sum > 'outputs/chunk_${{ matrix.center }}_${{ matrix.start }}/SHA256SUMS.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fedsynth-chunk-${{ matrix.center }}-${{ matrix.start }}
+          path: outputs/chunk_${{ matrix.center }}_${{ matrix.start }}
+          compression-level: 6
+          retention-days: 30
+          if-no-files-found: error
+
+  aggregate:
+    name: Aggregate 180-case results
+    needs: analyze
+    if: ${{ needs.analyze.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: fedsynth-chunk-*
+          path: collected
+          merge-multiple: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install aggregation runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            'numpy==2.1.3' \
+            'scipy==1.14.1' \
+            'pandas==2.2.3' \
+            'matplotlib==3.9.2' \
+            'scikit-learn==1.5.2'
+
+      - name: Aggregate, bootstrap, ablate and calibrate QA
+        run: |
+          python fedsynth_full/aggregate_full.py --root collected --out outputs/full_analysis
+          find outputs/full_analysis -type f -print0 | sort -z | xargs -0 sha256sum > outputs/full_analysis/SHA256SUMS.txt
+          find outputs/full_analysis -type f -printf '%P\t%s bytes\n' | sort > outputs/full_analysis/FILE_INVENTORY.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fedsynth-full-180-case-analysis
+          path: outputs/full_analysis
+          compression-level: 6
+          retention-days: 30
+          if-no-files-found: error
