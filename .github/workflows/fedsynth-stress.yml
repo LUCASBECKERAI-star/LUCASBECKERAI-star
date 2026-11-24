@@ -7,8 +7,15 @@ on:
       - '.github/workflows/fedsynth-stress.yml'
   workflow_dispatch:
 
+concurrency:
+  group: fedsynth-stress-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
+
+env:
+  ANALYSIS_PROTOCOL_VERSION: 'v1.2.0-official-mask'
 
 jobs:
   stress:
@@ -16,6 +23,7 @@ jobs:
     timeout-minutes: 240
     strategy:
       fail-fast: false
+      max-parallel: 3
       matrix:
         center: [A,B,C]
     steps:
@@ -24,7 +32,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
       - run: npm install --no-save @gyng/remote-zip@1.0.1
-      - name: Extract six deterministic paired cases
+      - name: Extract six deterministic paired cases with resilient retries
         run: node fedsynth_full/extract_chunk.mjs '${{ matrix.center }}' 0 6 data/stress
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
@@ -35,7 +43,7 @@ jobs:
       - name: Download and verify official Li ONNX
         run: |
           mkdir -p models
-          curl --fail --location --retry 5 'https://github.com/ciroraggio/SlicerModalityConverter/releases/download/models/fedsynthct_lietal_t1w_brain.onnx' -o models/li.onnx
+          curl --fail --location --retry 5 --retry-delay 5 'https://github.com/ciroraggio/SlicerModalityConverter/releases/download/models/fedsynthct_lietal_t1w_brain.onnx' -o models/li.onnx
           echo '52837d959b844bf83664d7e1e575d1a5f8cfbbec29bf1d52f3e59cc688d99fda  models/li.onnx' | sha256sum -c -
       - name: Run model-space stress tests
         run: |
