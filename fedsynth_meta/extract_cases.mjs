@@ -2,7 +2,7 @@ import { RemoteZipPointer } from '@gyng/remote-zip';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-const archiveUrl = new URL('https://zenodo.org/api/records/7260705/files/Task1.zip/content');
+const archiveUrl = new URL('https://zenodo.org/records/7260705/files/Task1.zip?download=1');
 const outRoot = process.argv[2] || 'data/pilot';
 await fs.mkdir(outRoot, { recursive: true });
 
