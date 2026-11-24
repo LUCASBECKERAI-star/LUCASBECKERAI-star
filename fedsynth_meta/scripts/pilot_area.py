@@ -41,13 +41,14 @@ def adaptive_area_resize(array: np.ndarray, shape: tuple[int, int, int], order: 
 
 
 _pilot.resize_array = adaptive_area_resize
-_pilot.ANALYSIS_VERSION = "FedSynthCT-Li-ONNX-reanalysis-v1.1.0-area"
+_pilot.ANALYSIS_VERSION = "FedSynthCT-Li-ONNX-reanalysis-v1.1.1-area-hotfix"
 
 MODEL_SHA256 = _pilot.MODEL_SHA256
 ANALYSIS_VERSION = _pilot.ANALYSIS_VERSION
 file_sha256 = _pilot.file_sha256
 inspect_model = _pilot.inspect_model
 process_case = _pilot.process_case
+asdict = _pilot.asdict
 
 if __name__ == "__main__":
     _pilot.main()
