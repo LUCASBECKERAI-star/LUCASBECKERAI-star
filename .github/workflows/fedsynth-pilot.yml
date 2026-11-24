@@ -1,12 +1,12 @@
 name: FedSynthCT Li ONNX three-case technical pilot
 
 on:
-  push:
-    branches: [fedsynth-meta-reanalysis]
-    paths:
-      - '.github/workflows/fedsynth-pilot.yml'
-      - 'fedsynth_meta/**'
+  # Manual only: repair commits must not repeatedly launch the technical pilot.
   workflow_dispatch:
+
+concurrency:
+  group: fedsynth-pilot-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -21,6 +21,9 @@ jobs:
     steps:
       - name: Check out versioned reanalysis branch
         uses: actions/checkout@v4
+
+      - name: Validate pilot source before downloading research data
+        run: python3 -m compileall -q fedsynth_meta/scripts
 
       - name: Configure Node.js
         uses: actions/setup-node@v4
