@@ -7,7 +7,7 @@ import pandas as pd
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / 'fedsynth_meta' / 'scripts'))
-from pilot_area import MODEL_SHA256, ANALYSIS_VERSION, file_sha256, inspect_model, process_case
+from pilot_official import MODEL_SHA256, ANALYSIS_VERSION, file_sha256, inspect_model, process_case
 
 
 def main():
@@ -43,7 +43,7 @@ def main():
     with (args.out/'summaries'/'chunk_case_summaries.jsonl').open('w', encoding='utf-8') as f:
         for item in summaries:
             f.write(json.dumps(item, allow_nan=True)+'\n')
-    print(json.dumps({'n_cases':len(case_dirs),'case_ids':[p.name for p in case_dirs]}, indent=2))
+    print(json.dumps({'n_cases':len(case_dirs),'case_ids':[p.name for p in case_dirs],'analysis_version':ANALYSIS_VERSION}, indent=2))
 
 if __name__=='__main__':
     main()
