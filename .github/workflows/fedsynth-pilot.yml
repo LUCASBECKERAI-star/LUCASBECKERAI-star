@@ -31,15 +31,34 @@ jobs:
         run: npm install --no-save @gyng/remote-zip@1.0.1
 
       - name: Extract one paired Task1 brain case per anonymous center
-        run: node fedsynth_meta/extract_cases.mjs data/pilot
+        id: extract
+        continue-on-error: true
+        run: |
+          mkdir -p outputs/bootstrap
+          set +e
+          node fedsynth_meta/extract_cases.mjs data/pilot 2>&1 | tee outputs/bootstrap/extraction.log
+          status=${PIPESTATUS[0]}
+          echo "$status" > outputs/bootstrap/extraction_exit_code.txt
+          exit $status
+
+      - name: Upload extraction diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fedsynth-extraction-diagnostics
+          path: outputs/bootstrap
+          retention-days: 30
+          if-no-files-found: error
 
       - name: Configure Python
+        if: steps.extract.outcome == 'success'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
       - name: Install pinned analysis runtime
+        if: steps.extract.outcome == 'success'
         run: |
           python -m pip install --upgrade pip
           python -m pip install \
@@ -53,6 +72,7 @@ jobs:
             'onnxruntime==1.20.1'
 
       - name: Download and verify the official Li ONNX model
+        if: steps.extract.outcome == 'success'
         run: |
           mkdir -p models
           curl --fail --location --retry 5 --retry-delay 5 \
@@ -61,6 +81,7 @@ jobs:
           echo '52837d959b844bf83664d7e1e575d1a5f8cfbbec29bf1d52f3e59cc688d99fda  models/fedsynthct_lietal_t1w_brain.onnx' | sha256sum -c -
 
       - name: Run the new versioned three-case technical pilot
+        if: steps.extract.outcome == 'success'
         run: |
           rm -rf outputs/pilot
           python fedsynth_meta/scripts/pilot.py \
@@ -69,18 +90,21 @@ jobs:
             --out outputs/pilot
 
       - name: Add public 3D Slicer interface screenshot
+        if: steps.extract.outcome == 'success'
         run: |
           curl --fail --location --retry 3 \
             'https://raw.githubusercontent.com/ciroraggio/SlicerModalityConverter/main/ModalityConverter/assets/ScreenshotUI.png' \
             -o outputs/pilot/figures/SlicerModalityConverter_UI.png
 
       - name: Write checksums and file inventory
+        if: steps.extract.outcome == 'success'
         run: |
           find outputs/pilot -type f -print0 | sort -z | xargs -0 sha256sum > outputs/pilot/SHA256SUMS.txt
           find outputs/pilot -type f -printf '%P\t%s bytes\n' | sort > outputs/pilot/FILE_INVENTORY.txt
           cp data/pilot/extraction_manifest.json outputs/pilot/
 
       - name: Upload complete technical-pilot artifact
+        if: steps.extract.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: fedsynth-li-three-case-technical-pilot
@@ -88,3 +112,7 @@ jobs:
           compression-level: 6
           retention-days: 30
           if-no-files-found: error
+
+      - name: Fail job after preserving diagnostics
+        if: steps.extract.outcome != 'success'
+        run: exit 1
