@@ -3,14 +3,39 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const archiveUrl = new URL('https://zenodo.org/records/7260705/files/Task1.zip?download=1');
+const archiveBytes = 14_471_900_926;
 const outRoot = process.argv[2] || 'data/pilot';
 await fs.mkdir(outRoot, { recursive: true });
+
+// Zenodo serves byte-range GET requests for the archive but may reject HEAD
+// requests from hosted CI runners. RemoteZipPointer requires HEAD only to obtain
+// Content-Length, which is published in the official Zenodo metadata. Intercept
+// only that metadata request; all byte-range GETs still go directly to Zenodo.
+const nativeFetch = globalThis.fetch;
+globalThis.fetch = async (input, init = {}) => {
+  const method = String(init?.method || 'GET').toUpperCase();
+  const rawUrl = typeof input === 'string' || input instanceof URL ? String(input) : input.url;
+  const url = new URL(rawUrl);
+  if (method === 'HEAD' && url.hostname.endsWith('zenodo.org')) {
+    return new Response(null, {
+      status: 200,
+      headers: { 'content-length': String(archiveBytes) },
+    });
+  }
+  return nativeFetch(input, init);
+};
 
 console.log(`Opening remote ZIP central directory: ${archiveUrl}`);
 const zip = await new RemoteZipPointer({
   url: archiveUrl,
   timeoutMs: 180000,
-  requestInit: { cache: 'no-store' },
+  requestInit: {
+    cache: 'no-store',
+    headers: {
+      'User-Agent': 'FedSynthCT-Research-Reanalysis/1.0',
+      'Accept': 'application/octet-stream,*/*',
+    },
+  },
 }).populate();
 
 const listing = zip.files();
@@ -71,6 +96,6 @@ for (const item of selected) {
 }
 await fs.writeFile(
   path.join(outRoot, 'extraction_manifest.json'),
-  JSON.stringify({ archive: archiveUrl.toString(), selected, manifest }, null, 2),
+  JSON.stringify({ archive: archiveUrl.toString(), archive_bytes: archiveBytes, selected, manifest }, null, 2),
 );
 console.log('Extraction complete.');
