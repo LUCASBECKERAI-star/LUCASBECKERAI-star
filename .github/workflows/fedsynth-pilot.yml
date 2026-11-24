@@ -1,7 +1,11 @@
 name: FedSynthCT Li ONNX three-case technical pilot
 
 on:
-  # Manual only: repair commits must not repeatedly launch the technical pilot.
+  push:
+    branches: [fedsynth-meta-reanalysis]
+    paths:
+      - '.github/workflows/fedsynth-pilot.yml'
+      - 'fedsynth_meta/**'
   workflow_dispatch:
 
 concurrency:
