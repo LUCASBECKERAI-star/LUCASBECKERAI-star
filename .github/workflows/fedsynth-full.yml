@@ -5,6 +5,8 @@ on:
     branches: [fedsynth-meta-reanalysis]
     paths:
       - '.github/workflows/fedsynth-full.yml'
+      - 'fedsynth_meta/scripts/**'
+      - 'fedsynth_full/**'
   workflow_dispatch:
 
 concurrency:
@@ -16,7 +18,7 @@ permissions:
 
 env:
   PYTHONUNBUFFERED: '1'
-  ANALYSIS_PROTOCOL_VERSION: 'v1.2.0-official-mask'
+  ANALYSIS_PROTOCOL_VERSION: 'v1.2.1-official-mask-hotfix'
 
 jobs:
   analyze:
