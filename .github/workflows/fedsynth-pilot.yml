@@ -80,30 +80,48 @@ jobs:
           echo '52837d959b844bf83664d7e1e575d1a5f8cfbbec29bf1d52f3e59cc688d99fda  models/fedsynthct_lietal_t1w_brain.onnx' | sha256sum -c -
 
       - name: Run the new versioned three-case technical pilot
+        id: runpilot
         if: steps.extract.outcome == 'success'
+        continue-on-error: true
         run: |
           rm -rf outputs/pilot
+          mkdir -p outputs/pilot outputs/bootstrap
+          set +e
           python fedsynth_meta/scripts/pilot.py \
             --data data/pilot \
             --model models/fedsynthct_lietal_t1w_brain.onnx \
-            --out outputs/pilot
+            --out outputs/pilot 2>&1 | tee outputs/bootstrap/pilot.log
+          status=${PIPESTATUS[0]}
+          echo "$status" > outputs/bootstrap/pilot_exit_code.txt
+          exit $status
+
+      - name: Upload runtime diagnostics
+        if: always() && steps.extract.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fedsynth-pilot-runtime-diagnostics
+          path: |
+            outputs/bootstrap
+            outputs/pilot/summaries
+          retention-days: 30
+          if-no-files-found: warn
 
       - name: Add public 3D Slicer interface screenshot
-        if: steps.extract.outcome == 'success'
+        if: steps.runpilot.outcome == 'success'
         run: |
           curl --fail --location --retry 3 \
             'https://raw.githubusercontent.com/ciroraggio/SlicerModalityConverter/main/ModalityConverter/assets/ScreenshotUI.png' \
             -o outputs/pilot/figures/SlicerModalityConverter_UI.png
 
       - name: Write checksums and file inventory
-        if: steps.extract.outcome == 'success'
+        if: steps.runpilot.outcome == 'success'
         run: |
           find outputs/pilot -type f -print0 | sort -z | xargs -0 sha256sum > outputs/pilot/SHA256SUMS.txt
           find outputs/pilot -type f -printf '%P\t%s bytes\n' | sort > outputs/pilot/FILE_INVENTORY.txt
           cp data/pilot/extraction_manifest.json outputs/pilot/
 
       - name: Upload complete technical-pilot artifact
-        if: steps.extract.outcome == 'success'
+        if: steps.runpilot.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: fedsynth-li-three-case-technical-pilot
@@ -113,5 +131,5 @@ jobs:
           if-no-files-found: error
 
       - name: Fail job after preserving diagnostics
-        if: steps.extract.outcome != 'success'
+        if: steps.extract.outcome != 'success' || steps.runpilot.outcome != 'success'
         run: exit 1
