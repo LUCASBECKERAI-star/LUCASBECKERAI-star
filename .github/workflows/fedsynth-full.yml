@@ -1,6 +1,10 @@
 name: FedSynthCT Li ONNX full 180-case reanalysis
 
 on:
+  push:
+    branches: [fedsynth-meta-reanalysis]
+    paths:
+      - '.github/workflows/fedsynth-full.yml'
   workflow_dispatch:
 
 concurrency:
